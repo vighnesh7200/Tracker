@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="description" content="Daily health & fitness tracker with exercise checklist, nutrition goals, and streak tracking">
+<title>Daily Tracker</title>
+
+<!-- PWA / Standalone mode -->
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Daily Tracker">
+<meta name="application-name" content="Daily Tracker">
+<meta name="theme-color" content="#0F0F14">
+
+<!-- Real Web App Manifest -->
+<link rel="manifest" href="manifest.json">
+
+<style>
+/* ===== CSS CUSTOM PROPERTIES ===== */
+:root {
+  --bg:          #0F0F14;
+  --bg2:         #16161f;
+  --bg3:         #1e1e2a;
+  --card:        #1a1a24;
+  --border:      rgba(255,255,255,0.08);
+  --border-act:  rgba(74,222,128,0.35);
+  --text:        #e8e8f0;
+  --text-dim:    #7878a0;
+  --text-muted:  #4a4a6a;
+  --accent:      #4ADE80;
+  --accent-dim:  rgba(74,222,128,0.15);
+  --accent-glow: rgba(74,222,128,0.08);
+  --danger:      #f87171;
+  --danger-bg:   #7f1d1d;
+  --radius:      14px;
+  --radius-sm:   8px;
+  --trans:       0.22s cubic-bezier(0.4,0,0.2,1);
+}
+[data-theme="light"] {
+  --bg:          #f0f0f8;
+  --bg2:         #e8e8f2;
+  --bg3:         #dcdcec;
+  --card:        #ffffff;
+  --border:      rgba(0,0,0,0.08);
+  --border-act:  rgba(22,163,74,0.35);
+  --text:        #1a1a2e;
+  --text-dim:    #5a5a7a;
+  --text-muted:  #9090b0;
+  --accent:      #16a34a;
+  --accent-dim:  rgba(22,163,74,0.12);
+  --accent-glow: rgba(22,163,74,0.06);
+  --danger:      #dc2626;
+  --danger-bg:   #fca5a5;
+}
+
+/* ===== RESET ===== */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; -webkit-text-size-adjust: 100%; }
+body {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh; min-height: 100dvh;
+  display: flex; justify-content: center; align-items: flex-start;
+  padding-top: env(safe-area-inset-top);
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+#app {
+  width: 100%; max-width: 390px; min-height: 100vh;
+  background: var(--bg);
+  display: flex; flex-direction: column;
+  position: relative; overflow-x: hidden;
+}
+
+/* ===== HEADER ===== */
+.header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 16px 10px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.header-left { display: flex; flex-direction: column; gap: 1px; }
+.header-date { font-size: 10px; font-weight: 600; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim); }
+.header-title { font-size: 19px; font-weight: 800; color: var(--text); letter-spacing: -0.02em; }
+.header-right { display: flex; gap: 6px; }
+.icon-btn {
+  width: 34px; height: 34px; border-radius: var(--radius-sm);
+  border: 1px solid var(--border); background: var(--card); color: var(--text-dim);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 15px;
+  transition: all var(--trans);
+  -webkit-user-select: none; user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.icon-btn:active { transform: scale(0.9); }
+
+/* ===== DATE NAVIGATOR ===== */
+.date-nav {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 9px 14px;
+  background: var(--bg2);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+}
+.date-nav-btn {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  border: 1px solid var(--border);
+  background: var(--card);
+  color: var(--text-dim);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 14px;
+  transition: all var(--trans);
+  -webkit-tap-highlight-color: transparent;
+  flex-shrink: 0;
+}
+.date-nav-btn:active { transform: scale(0.88); background: var(--bg3); }
+.date-nav-btn:disabled { opacity: 0.25; pointer-events: none; }
+.date-nav-center { display: flex; flex-direction: column; align-items: center; gap: 2px; flex: 1; }
+.date-nav-label { font-size: 13px; font-weight: 700; color: var(--text); letter-spacing: -0.01em; }
+.date-nav-sub { font-size: 10px; font-weight: 500; color: var(--text-dim); letter-spacing: 0.06em; text-transform: uppercase; }
+.today-badge {
+  display: inline-block;
+  background: var(--accent-dim);
+  color: var(--accent);
+  border: 1px solid var(--border-act);
+  border-radius: 10px;
+  font-size: 9px; font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 1px 7px;
+  margin-top: 2px;
+}
+.past-badge {
+  display: inline-block;
+  background: var(--bg3);
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  font-size: 9px; font-weight: 600;
+  letter-spacing: 0.08em;
+  padding: 1px 7px;
+  margin-top: 2px;
+}
+
+/* ===== SCROLL ===== */
+.scroll-area {
+  flex: 1; overflow-y: auto;
+  padding: 12px 12px calc(80px + env(safe-area-inset-bottom));
+  display: flex; flex-direction: column; gap: 12px;
+}
+.scroll-area::-webkit-scrollbar { display: none; }
+
+/* ===== STREAK ===== */
+.streak-banner {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  display: flex; align-items: center; gap: 14px;
+}
+.streak-num-wrap { display: flex; flex-direction: column; align-items: center; min-width: 58px; }
+.streak-num {
+  font-size: 48px; font-weight: 800; line-height: 1;
+  color: var(--accent); letter-spacing: -0.04em;
+}
+.streak-label { font-size: 9px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text-dim); margin-top: 2px; }
+.streak-divider { width: 1px; height: 56px; background: var(--border); flex-shrink: 0; }
+.streak-calendar { flex: 1; }
+.cal-row { display: flex; justify-content: space-between; }
+.cal-day { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; }
+.cal-day-label { font-size: 9px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--text-muted); }
+.cal-dot {
+  width: 20px; height: 20px; border-radius: 50%;
+  border: 1.5px solid var(--text-muted);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 9px; font-weight: 700;
+  transition: all var(--trans);
+}
+.cal-dot.done { background: var(--accent); border-color: var(--accent); color: #fff; }
+.cal-dot.today { border-color: var(--accent); color: var(--accent); }
+.cal-dot.future { opacity: 0.3; }
+.cal-dot.viewing { box-shadow: 0 0 0 2px var(--accent); }
+
+/* ===== SECTION CARD ===== */
+.section-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.section-header { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px 10px; border-bottom: 1px solid var(--border); }
+.section-title { font-size: 10px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-dim); }
+.section-progress { font-size: 11px; font-weight: 700; color: var(--accent); }
+.section-progress.zero { color: var(--text-muted); }
+.progress-bar-wrap { height: 2px; background: var(--bg3); }
+.progress-bar { height: 100%; background: var(--accent); transition: width 0.4s ease; }
+
+/* ===== REST DAY ===== */
+.rest-day { padding: 22px 16px; text-align: center; display: flex; flex-direction: column; align-items: center; gap: 7px; }
+.rest-icon { font-size: 26px; color: var(--text-dim); }
+.rest-title { font-size: 14px; font-weight: 700; color: var(--text); }
+.rest-tip { font-size: 12.5px; color: var(--text-dim); line-height: 1.5; }
+
+/* ===== FOOD GROUP LABEL ===== */
+.food-group-label {
+  font-size: 9px; font-weight: 700; letter-spacing: 0.15em;
+  text-transform: uppercase; color: var(--text-muted);
+  padding: 9px 14px 3px;
+}
+
+/* ===== SWIPE-TO-DELETE ITEM ===== */
+.swipe-container {
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid var(--border);
+}
+.swipe-container:last-child { border-bottom: none; }
+
+.delete-reveal {
+  position: absolute;
+  right: 0; top: 0; bottom: 0;
+  width: 72px;
+  background: var(--danger);
+  display: flex; align-items: center; justify-content: center;
+  flex-direction: column; gap: 2px;
+  color: #fff;
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.05em;
+  pointer-events: none;
+}
+.delete-reveal-icon { font-size: 16px; font-weight: 400; }
+
+.check-item {
+  display: flex; align-items: center; gap: 11px;
+  padding: 11px 14px;
+  background: var(--card);
+  cursor: pointer;
+  position: relative; z-index: 1;
+  transition: background var(--trans);
+  -webkit-tap-highlight-color: transparent;
+  will-change: transform;
+}
+.check-item:active { background: var(--bg3); }
+.check-item.checked { background: var(--accent-glow); }
+.check-item.checked .item-label { color: var(--text-dim); text-decoration: line-through; text-decoration-color: var(--text-muted); }
+.check-item.is-swiping { transition: none !important; }
+
+.check-box {
+  width: 22px; height: 22px; border-radius: 6px;
+  border: 1.5px solid var(--text-muted);
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+  transition: all var(--trans);
+  font-size: 12px; color: transparent; font-weight: 700;
+}
+.check-item.checked .check-box {
+  background: var(--accent); border-color: var(--accent); color: #fff;
+  box-shadow: 0 0 10px var(--accent-dim);
+}
+.item-label {
+  flex: 1; font-size: 13px; font-weight: 500;
+  color: var(--text); line-height: 1.4;
+  transition: color var(--trans);
+  word-break: break-word; outline: none;
+}
+.item-label[contenteditable="true"] {
+  background: var(--bg3); border-radius: 4px;
+  padding: 1px 6px; border: 1px solid var(--border-act); color: var(--text);
+}
+.readonly-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--text-muted); flex-shrink: 0; opacity: 0.5; }
+
+/* ===== ADD BUTTON ===== */
+.add-btn {
+  display: flex; align-items: center; gap: 8px;
+  padding: 11px 14px; font-size: 12.5px; font-weight: 600;
+  color: var(--text-muted); background: transparent; border: none;
+  border-top: 1px solid var(--border);
+  cursor: pointer; width: 100%;
+  transition: all var(--trans);
+  -webkit-tap-highlight-color: transparent; font-family: inherit;
+}
+.add-btn:active { background: var(--bg3); color: var(--accent); }
+.add-btn-icon { font-size: 15px; font-weight: 300; }
+
+/* ===== SETTINGS PANEL ===== */
+.settings-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6); z-index: 100;
+  opacity: 0; pointer-events: none;
+  transition: opacity var(--trans);
+  backdrop-filter: blur(4px);
+}
+.settings-overlay.open { opacity: 1; pointer-events: all; }
+.settings-sheet {
+  position: fixed; bottom: 0; left: 50%;
+  transform: translateX(-50%) translateY(100%);
+  width: 100%; max-width: 390px;
+  background: var(--bg2);
+  border-radius: var(--radius) var(--radius) 0 0;
+  border: 1px solid var(--border); border-bottom: none;
+  z-index: 101;
+  transition: transform 0.3s cubic-bezier(0.32,0.72,0,1);
+  max-height: 82vh; overflow-y: auto;
+}
+.settings-sheet::-webkit-scrollbar { display: none; }
+.settings-sheet.open { transform: translateX(-50%) translateY(0); }
+.settings-handle { width: 40px; height: 4px; background: var(--text-muted); border-radius: 2px; margin: 11px auto 14px; }
+.settings-title { font-size: 14px; font-weight: 700; color: var(--text); padding: 0 16px 14px; border-bottom: 1px solid var(--border); }
+.settings-section { padding: 12px 16px; border-bottom: 1px solid var(--border); }
+.settings-section-label { font-size: 9px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text-muted); margin-bottom: 9px; }
+.settings-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; }
+.settings-row-label { font-size: 13px; font-weight: 500; color: var(--text); }
+.toggle { position: relative; width: 42px; height: 24px; flex-shrink: 0; }
+.toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+.toggle-track { position: absolute; inset: 0; border-radius: 12px; background: var(--bg3); border: 1px solid var(--border); transition: all var(--trans); cursor: pointer; }
+.toggle input:checked + .toggle-track { background: var(--accent); border-color: var(--accent); }
+.toggle-thumb { position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; box-shadow: 0 1px 4px rgba(0,0,0,.3); transition: all var(--trans); pointer-events: none; }
+.toggle input:checked ~ .toggle-thumb { left: 21px; }
+
+/* ===== TOAST ===== */
+.toast {
+  position: fixed; bottom: 28px; left: 50%;
+  transform: translateX(-50%) translateY(16px);
+  background: var(--bg3); color: var(--text);
+  border: 1px solid var(--border); border-radius: var(--radius-sm);
+  padding: 8px 14px; font-size: 12.5px; font-weight: 500;
+  white-space: nowrap; opacity: 0; pointer-events: none;
+  transition: all 0.25s ease; z-index: 200;
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+/* ===== ANIMATIONS ===== */
+@keyframes pop { 0%{transform:scale(1)} 50%{transform:scale(1.2)} 100%{transform:scale(1)} }
+.check-box.pop { animation: pop 0.2s ease; }
+@keyframes slideInDown { from{opacity:0;transform:translateY(-6px)} to{opacity:1;transform:none} }
+.swipe-container { animation: slideInDown 0.16s ease both; }
+
+/* ===== READONLY OVERLAY ===== */
+.readonly-notice {
+  display: flex; align-items: center; gap: 8px;
+  padding: 9px 14px;
+  background: var(--bg3);
+  border-bottom: 1px solid var(--border);
+  font-size: 11px; font-weight: 600; color: var(--text-muted);
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- HEADER -->
+  <header class="header">
+    <div class="header-left">
+      <div class="header-date" id="hdrDate"></div>
+      <div class="header-title">Daily Tracker</div>
+    </div>
+    <div class="header-right">
+      <button class="icon-btn" id="themeBtn" aria-label="Toggle theme">&#9788;</button>
+      <button class="icon-btn" id="settingsBtn" aria-label="Settings">&#9881;</button>
+    </div>
+  </header>
+
+  <!-- DATE NAVIGATOR -->
+  <nav class="date-nav">
+    <button class="date-nav-btn" id="prevDay" aria-label="Previous day">&#8249;</button>
+    <div class="date-nav-center">
+      <div class="date-nav-label" id="navDateLabel"></div>
+      <div id="navBadge"></div>
+    </div>
+    <button class="date-nav-btn" id="nextDay" aria-label="Next day">&#8250;</button>
+  </nav>
+
+  <!-- SCROLL AREA -->
+  <main class="scroll-area" id="mainScroll">
+
+    <!-- STREAK BANNER -->
+    <div class="streak-banner">
+      <div class="streak-num-wrap">
+        <div class="streak-num" id="streakNum">0</div>
+        <div class="streak-label">Day Streak</div>
+      </div>
+      <div class="streak-divider"></div>
+      <div class="streak-calendar">
+        <div class="cal-row" id="calRow"></div>
+      </div>
+    </div>
+
+    <!-- EXERCISE SECTION -->
+    <div class="section-card">
+      <div class="section-header">
+        <span class="section-title" id="exSectionTitle">Exercise</span>
+        <span class="section-progress zero" id="exProgress">0 / 0</span>
+      </div>
+      <div class="progress-bar-wrap"><div class="progress-bar" id="exBar" style="width:0%"></div></div>
+      <div id="exerciseBody"></div>
+      <button class="add-btn" id="addExercise"><span class="add-btn-icon">+</span> Add exercise</button>
+    </div>
+
+    <!-- FOOD SECTION -->
+    <div class="section-card">
+      <div class="section-header">
+        <span class="section-title">Nutrition</span>
+        <span class="section-progress zero" id="foodProgress">0 / 0</span>
+      </div>
+      <div class="progress-bar-wrap"><div class="progress-bar" id="foodBar" style="width:0%"></div></div>
+      <div id="foodBody"></div>
+      <button class="add-btn" id="addFood"><span class="add-btn-icon">+</span> Add food item</button>
+    </div>
+
+  </main>
+
+  <!-- TOAST -->
+  <div class="toast" id="toast"></div>
+
+  <!-- SETTINGS -->
+  <div class="settings-overlay" id="settingsOverlay"></div>
+  <div class="settings-sheet" id="settingsSheet">
+    <div class="settings-handle"></div>
+    <div class="settings-title">Settings</div>
+    <div class="settings-section">
+      <div class="settings-section-label">Appearance</div>
+      <div class="settings-row">
+        <span class="settings-row-label">Light Mode</span>
+        <label class="toggle">
+          <input type="checkbox" id="lightModeToggle">
+          <div class="toggle-track"></div>
+          <div class="toggle-thumb"></div>
+        </label>
+      </div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-section-label">Food Items — Visible</div>
+      <div id="settingsFoodToggles"></div>
+    </div>
+    <div class="settings-section">
+      <div class="settings-section-label">Data</div>
+      <div class="settings-row">
+        <span class="settings-row-label">Reset streak to 0</span>
+        <button class="icon-btn" id="resetStreakBtn" style="color:var(--danger);border-color:var(--danger)">&#8635;</button>
+      </div>
+    </div>
+    <div style="height:24px"></div>
+  </div>
+
+</div>
+<script>
+/* ==============================================
+   DAILY TRACKER — full vanilla JS
+   ============================================== */
+
+// ---- UTILITIES ----
+const $ = id => document.getElementById(id);
+const el = (tag, cls, txt) => {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (txt != null) e.textContent = txt;
+  return e;
+};
+const elH = (tag, cls, html) => {
+  const e = document.createElement(tag);
+  if (cls) e.className = cls;
+  if (html != null) e.innerHTML = html;
+  return e;
+};
+
+function fmtKey(d) {
+  return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+}
+function todayKey()  { return fmtKey(new Date()); }
+function todayDow()  { return new Date().getDay(); }
+function dowOfKey(k) { return new Date(k + 'T00:00:00').getDay(); }
+
+function offsetDate(baseKey, delta) {
+  const d = new Date(baseKey + 'T00:00:00');
+  d.setDate(d.getDate() + delta);
+  return fmtKey(d);
+}
+
+// ---- RECOVERY TIPS ----
+const TIPS = [
+  "Sleep 8h tonight — your best recovery tool.",
+  "Active recovery: a 20-min walk keeps blood flowing without taxing muscles.",
+  "Hydrate well. Muscles repair faster when fully hydrated.",
+  "10 min foam rolling on tight spots. Your joints will thank you.",
+  "10 min of deep breathing or meditation. Recovery is mental too.",
+  "Spend time in sunlight — vitamin D aids muscle repair."
+];
+function tip() { return TIPS[Math.floor(Math.random() * TIPS.length)]; }
+
+// ---- DEFAULTS ----
+const DAY_NAMES   = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+const DAY_SHORTS  = ["Sun","Mon","Tue","Wed","Thu","Fri","Sat"];
+const MONTH_NAMES = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const CAL_LABELS  = ["S","M","T","W","T","F","S"];
+
+const DEFAULT_EX = {
+  0: null,
+  1: { label:"Push Day",    items:["Bench Press","Incline DB Press","Overhead Press","Lateral Raises","Cable Fly","Tricep Pushdowns","Rope Jumps 3\u00d72min"] },
+  2: { label:"Pull Day",    items:["Pull-ups","Bent-over Row","Seated Cable Row","Face Pulls","Barbell Curl","Dead Hang 3\u00d745sec"] },
+  3: null,
+  4: { label:"Leg Day",     items:["Barbell Squat","Romanian Deadlift","Leg Press","Leg Curl","Walking Lunges","Calf Raises"] },
+  5: { label:"Arms + Core", items:["Hammer Curl","Skull Crushers","Preacher Curl","Tricep Overhead Extension","Hanging Leg Raises","Dragon Flag Negatives","Ab Wheel Rollout","Oblique Cable Crunch","Hollow Body Hold","Rope Jumps 3\u00d73min"] },
+  6: { label:"Cardio",      items:["Rope Jumps 5min warmup","5km Run","Post-run Stretch 10min"] }
+};
+
+const DEFAULT_FOOD = [
+  { id:"f_mw1", group:"Morning",   label:"Warm water",                       special:null },
+  { id:"f_mw2", group:"Morning",   label:"3 soaked almonds",                 special:null },
+  { id:"f_mw3", group:"Morning",   label:"Lemon squeeze",                    special:null },
+  { id:"f_br1", group:"Breakfast", label:"Oats + milk (\u00bd cup, 350ml)", special:null },
+  { id:"f_br2", group:"Breakfast", label:"3 tbsp peanut butter",             special:null },
+  { id:"f_br3", group:"Breakfast", label:"2 tbsp honey",                     special:null },
+  { id:"f_br4", group:"Breakfast", label:"2 elaichi bananas",                special:null },
+  { id:"f_br5", group:"Breakfast", label:"2 whole eggs",                     special:null },
+  { id:"f_ln1", group:"Lunch",     label:"Double dal serving",               special:null },
+  { id:"f_ln2", group:"Lunch",     label:"Rice or roti",                     special:null },
+  { id:"f_ln3", group:"Lunch",     label:"Curd if available",                special:null },
+  { id:"f_ck1", group:"Chicken Day (Mon\u2044Wed)", label:"250g chicken breast", special:"mon_wed" },
+  { id:"f_lv1", group:"Liver Day (Fri)",  label:"75\u2013100g chicken liver", special:"fri" },
+  { id:"f_dn1", group:"Dinner",    label:"1.5 bhakri",                       special:null },
+  { id:"f_dn2", group:"Dinner",    label:"Mom\u2019s sabzi",                 special:null },
+  { id:"f_dn3", group:"Dinner",    label:"1 cup curd",                       special:null },
+  { id:"f_bd1", group:"Bedtime",   label:"1 glass 4% fat milk",              special:null },
+  { id:"f_bd2", group:"Bedtime",   label:"Pinch haldi",                      special:null },
+];
+
+// ---- STATE ----
+let state = {
+  theme:           "dark",
+  viewDate:        todayKey(),
+  exercises:       {},   // [dow]: { items:[{id,label}], custom:[{id,label}] }
+  exerciseChecked: {},   // [dateKey][itemId]: bool
+  foodItems:       [],   // [{id,group,label,special,active}]
+  foodChecked:     {},   // [dateKey][itemId]: bool
+  streak:          0,
+  streakHistory:   {},   // [dateKey]: bool
+  lastDate:        null,
+};
+const SK = "dt_v4";
+
+// ---- PERSIST ----
+function save() {
+  try { localStorage.setItem(SK, JSON.stringify(state)); } catch(e){}
+}
+function load() {
+  try {
+    const raw = localStorage.getItem(SK);
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    if (s.theme)           state.theme = s.theme;
+    if (s.viewDate)        state.viewDate = s.viewDate;
+    if (s.exerciseChecked) state.exerciseChecked = s.exerciseChecked;
+    if (s.foodChecked)     state.foodChecked = s.foodChecked;
+    if (s.streak != null)  state.streak = s.streak;
+    if (s.streakHistory)   state.streakHistory = s.streakHistory;
+    if (s.lastDate)        state.lastDate = s.lastDate;
+    if (s.foodItems && s.foodItems.length) state.foodItems = s.foodItems;
+
+    // Migrate old exercises (with .checked embedded on items) → exerciseChecked
+    if (s.exercises) {
+      for (const dow in s.exercises) {
+        const day = s.exercises[dow];
+        if (!day) continue;
+        const both = [...(day.items||[]), ...(day.custom||[])];
+        both.forEach(item => {
+          if (item.checked) {
+            // We don't know which date, assume today (best effort migration)
+            const k = todayKey();
+            if (!state.exerciseChecked[k]) state.exerciseChecked[k] = {};
+            state.exerciseChecked[k][item.id] = true;
+          }
+        });
+        // Store clean definitions
+        if (!state.exercises[dow]) {
+          state.exercises[dow] = {
+            items:  (day.items  || []).map(({id,label}) => ({id,label})),
+            custom: (day.custom || []).map(({id,label}) => ({id,label}))
+          };
+        }
+      }
+    }
+  } catch(e){}
+}
+
+// ---- INIT EXERCISES ----
+function initExercises() {
+  for (let d = 0; d <= 6; d++) {
+    if (!state.exercises[d]) {
+      state.exercises[d] = { items:[], custom:[] };
+      const def = DEFAULT_EX[d];
+      if (def && def.items) {
+        state.exercises[d].items = def.items.map((label, i) => ({
+          id: `ex_${d}_${i}`, label
+        }));
+      }
+    }
+  }
+}
+
+// ---- INIT FOOD ----
+function initFood() {
+  if (state.foodItems && state.foodItems.length > 0) return;
+  const dow = todayDow();
+  state.foodItems = DEFAULT_FOOD.map(f => {
+    let active = true;
+    if (f.special === "mon_wed" && dow !== 1 && dow !== 3) active = false;
+    if (f.special === "fri"     && dow !== 5)              active = false;
+    return { ...f, active };
+  });
+}
+
+// ---- CHECKED HELPERS ----
+function exChecked(dateKey)  { if (!state.exerciseChecked[dateKey]) state.exerciseChecked[dateKey] = {}; return state.exerciseChecked[dateKey]; }
+function fChecked(dateKey)   { if (!state.foodChecked[dateKey])     state.foodChecked[dateKey] = {};     return state.foodChecked[dateKey]; }
+
+// ---- STREAK ----
+function computeStreak() {
+  let streak = 0;
+  const today = new Date();
+  for (let i = 0; i < 730; i++) {
+    const d = new Date(today); d.setDate(d.getDate() - i);
+    const k = fmtKey(d);
+    if (state.streakHistory[k]) streak++;
+    else { if (i === 0) break; break; }
+  }
+  state.streak = streak;
+}
+
+function checkDayComplete(dateKey) {
+  const dow = dowOfKey(dateKey);
+  // Exercise check
+  let exDone = true;
+  const def = DEFAULT_EX[dow];
+  if (def) {
+    const day = state.exercises[dow];
+    const ex  = exChecked(dateKey);
+    const all = [...(day.items||[]), ...(day.custom||[])];
+    exDone = all.length > 0 && all.every(it => ex[it.id]);
+  }
+  // Food check
+  const foodAct = state.foodItems.filter(f => f.active);
+  const fc = fChecked(dateKey);
+  const foodDone = foodAct.length > 0 && foodAct.every(f => fc[f.id]);
+
+  const complete = exDone && foodDone;
+  if (complete && !state.streakHistory[dateKey]) {
+    state.streakHistory[dateKey] = true;
+    computeStreak();
+    save();
+    renderStreak();
+    showToast("\u2713 Day complete! Streak updated.");
+  }
+}
+
+// ---- MIDNIGHT RESET ----
+function onNewDay() {
+  const k = todayKey();
+  if (state.lastDate && state.lastDate !== k) {
+    computeStreak();
+    state.viewDate = k; // jump to today on new day
+  }
+  state.lastDate = k;
+  save();
+}
+function scheduleMidnight() {
+  const now = new Date();
+  const ms  = new Date(now.getFullYear(), now.getMonth(), now.getDate()+1, 0, 0, 3) - now;
+  setTimeout(() => { onNewDay(); renderAll(); scheduleMidnight(); }, ms);
+}
+
+// ---- RENDER ALL ----
+function renderAll() {
+  renderHeader();
+  renderDateNav();
+  renderStreak();
+  renderExercise();
+  renderFood();
+  renderSettingsFoodToggles();
+  applyTheme();
+}
+
+function renderHeader() {
+  const d = new Date();
+  $("hdrDate").textContent = `${DAY_NAMES[d.getDay()]}, ${d.getDate()} ${MONTH_NAMES[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+// ---- DATE NAV ----
+function renderDateNav() {
+  const k   = state.viewDate;
+  const d   = new Date(k + 'T00:00:00');
+  const tok = todayKey();
+  const isToday = k === tok;
+
+  $("navDateLabel").textContent = `${DAY_NAMES[d.getDay()]}, ${d.getDate()} ${MONTH_NAMES[d.getMonth()]}`;
+
+  const badge = $("navBadge");
+  badge.innerHTML = "";
+  if (isToday) {
+    const b = el("span","today-badge","TODAY");
+    badge.appendChild(b);
+  } else {
+    const daysAgo = Math.round((new Date(tok+'T00:00:00') - d) / 86400000);
+    const b = el("span","past-badge", daysAgo === 1 ? "Yesterday" : `${daysAgo} days ago`);
+    badge.appendChild(b);
+  }
+
+  $("nextDay").disabled = isToday;
+}
+
+function navigateDate(delta) {
+  state.viewDate = offsetDate(state.viewDate, delta);
+  save();
+  renderDateNav();
+  renderStreak();  // update viewing dot
+  renderExercise();
+  renderFood();
+}
+
+// ---- STREAK RENDER ----
+function renderStreak() {
+  $("streakNum").textContent = state.streak;
+  const row   = $("calRow");
+  row.innerHTML = "";
+  const tok   = todayKey();
+  const today = new Date();
+  const dow   = today.getDay();
+
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(today);
+    d.setDate(d.getDate() - dow + i);
+    const k = fmtKey(d);
+    const isToday   = k === tok;
+    const isFuture  = k > tok;
+    const isViewing = k === state.viewDate;
+
+    const wrap  = el("div","cal-day");
+    const lbl   = el("div","cal-day-label", CAL_LABELS[i]);
+    const dot   = el("div","cal-dot");
+
+    if (state.streakHistory[k]) {
+      dot.classList.add("done");
+      dot.textContent = "\u2713";
+    } else if (isToday) {
+      dot.classList.add("today");
+      dot.textContent = "\u25cb";
+    } else if (isFuture) {
+      dot.classList.add("future");
+    }
+    if (isViewing) dot.classList.add("viewing");
+
+    // Tap calendar dot to navigate
+    wrap.addEventListener("click", () => {
+      if (!isFuture) {
+        state.viewDate = k;
+        save();
+        renderDateNav();
+        renderStreak();
+        renderExercise();
+        renderFood();
+      }
+    });
+
+    wrap.appendChild(lbl);
+    wrap.appendChild(dot);
+    row.appendChild(wrap);
+  }
+}
+
+// ---- EXERCISE RENDER ----
+function renderExercise() {
+  const body = $("exerciseBody");
+  body.innerHTML = "";
+
+  const dateKey = state.viewDate;
+  const tok     = todayKey();
+  const isToday = dateKey === tok;
+  const dow     = dowOfKey(dateKey);
+  const def     = DEFAULT_EX[dow];
+  const exDay   = state.exercises[dow] || { items:[], custom:[] };
+  const ex      = exChecked(dateKey);
+
+  const dayLabel = def ? def.label : "Rest Day";
+  $("exSectionTitle").textContent = `Exercise — ${DAY_SHORTS[dow]}`;
+
+  if (!def) {
+    const rest = elH("div","rest-day",
+      `<div class="rest-icon">\u25CE</div>
+       <div class="rest-title">${DAY_NAMES[dow]} \u2014 Rest Day</div>
+       <div class="rest-tip">${tip()}</div>`);
+    body.appendChild(rest);
+    $("exProgress").textContent = "Rest";
+    $("exProgress").className   = "section-progress zero";
+    $("exBar").style.width      = "0%";
+    $("addExercise").style.display = "none";
+    return;
+  }
+
+  $("addExercise").style.display = isToday ? "flex" : "none";
+
+  if (!isToday) {
+    const notice = elH("div","readonly-notice","&#128203; Past day \u2014 tap to toggle retroactively");
+    body.appendChild(notice);
+  }
+
+  const all = [...exDay.items, ...exDay.custom];
+  all.forEach(item => {
+    const checked = !!ex[item.id];
+    body.appendChild(makeItem(item, "ex", dateKey, checked, isToday));
+  });
+
+  updateExProgress(dateKey);
+}
+
+function updateExProgress(dateKey) {
+  const tok   = todayKey();
+  const dow   = dowOfKey(dateKey);
+  const def   = DEFAULT_EX[dow];
+  if (!def) return;
+  const exDay = state.exercises[dow] || { items:[], custom:[] };
+  const ex    = exChecked(dateKey);
+  const all   = [...exDay.items, ...exDay.custom];
+  const done  = all.filter(it => ex[it.id]).length;
+  const total = all.length;
+  $("exProgress").textContent = `${done} / ${total}`;
+  $("exProgress").className   = "section-progress" + (done === 0 ? " zero" : "");
+  $("exBar").style.width      = total ? `${(done/total)*100}%` : "0%";
+}
+
+// ---- FOOD RENDER ----
+function renderFood() {
+  const body    = $("foodBody");
+  body.innerHTML = "";
+  const dateKey = state.viewDate;
+  const tok     = todayKey();
+  const isToday = dateKey === tok;
+  const fc      = fChecked(dateKey);
+
+  $("addFood").style.display = isToday ? "flex" : "none";
+
+  if (!isToday) {
+    const notice = elH("div","readonly-notice","&#128203; Past day \u2014 tap to toggle retroactively");
+    body.appendChild(notice);
+  }
+
+  // Group
+  const groups = {};
+  state.foodItems.forEach(f => {
+    if (!f.active) return;
+    if (!groups[f.group]) groups[f.group] = [];
+    groups[f.group].push(f);
+  });
+
+  Object.keys(groups).forEach(gName => {
+    const grp = document.createElement("div");
+    grp.appendChild(el("div","food-group-label", gName));
+    const list = document.createElement("div");
+    groups[gName].forEach(f => {
+      const checked = !!fc[f.id];
+      list.appendChild(makeItem({id:f.id,label:f.label}, "food", dateKey, checked, isToday));
+    });
+    grp.appendChild(list);
+    body.appendChild(grp);
+  });
+
+  updateFoodProgress(dateKey);
+}
+
+function updateFoodProgress(dateKey) {
+  const fc    = fChecked(dateKey);
+  const act   = state.foodItems.filter(f => f.active);
+  const done  = act.filter(f => fc[f.id]).length;
+  const total = act.length;
+  $("foodProgress").textContent = `${done} / ${total}`;
+  $("foodProgress").className   = "section-progress" + (done === 0 ? " zero" : "");
+  $("foodBar").style.width      = total ? `${(done/total)*100}%` : "0%";
+}
+
+// ---- MAKE ITEM (swipe-to-delete) ----
+function makeItem(item, type, dateKey, checked, isToday) {
+  // Outer wrapper handles overflow clipping + swipe reveal
+  const wrap = el("div","swipe-container");
+
+  // Red delete zone (revealed on swipe left)
+  const delZone = elH("div","delete-reveal",
+    `<div class="delete-reveal-icon">\u2715</div><div>Delete</div>`);
+  wrap.appendChild(delZone);
+
+  // The actual row
+  const row = el("div","check-item" + (checked ? " checked" : ""));
+  const box = elH("div","check-box","\u2713");
+  const lbl = el("div","item-label");
+  lbl.textContent = item.label;
+  lbl.setAttribute("tabindex","0");
+  row.appendChild(box);
+  row.appendChild(lbl);
+  wrap.appendChild(row);
+
+  // ---- TOGGLE ----
+  let swipeActive = false;
+  row.addEventListener("click", () => {
+    if (swipeActive) return;
+    if (lbl.contentEditable === "true") return;
+    doToggle(item, type, dateKey, row, box, lbl);
+  });
+
+  // ---- DOUBLE-CLICK RENAME (today only) ----
+  if (isToday) {
+    lbl.addEventListener("dblclick", e => {
+      e.stopPropagation();
+      startRename(lbl, item, type);
+    });
+  }
+
+  // ---- SWIPE LEFT TO DELETE (today only) ----
+  if (isToday) {
+    attachSwipe(wrap, row, delZone, () => deleteItem(wrap, item, type, dateKey));
+  }
+
+  return wrap;
+}
+
+// ---- SWIPE LOGIC ----
+function attachSwipe(wrap, row, delZone, onDelete) {
+  const THRESHOLD = 72;
+  let startX = 0, currentX = 0, isSwiping = false, isOpen = false;
+
+  function setX(x) {
+    row.style.transform = `translateX(${x}px)`;
+    delZone.style.opacity = Math.min(1, Math.abs(x) / THRESHOLD);
+  }
+
+  function snapOpen()  { setX(-THRESHOLD); isOpen = true; delZone.style.pointerEvents = "all"; }
+  function snapClose() { row.style.transition = "transform 0.22s ease"; setX(0); row.style.transition = ""; isOpen = false; delZone.style.pointerEvents = "none"; }
+
+  // Touch
+  row.addEventListener("touchstart", e => {
+    startX = e.touches[0].clientX;
+    currentX = isOpen ? -THRESHOLD : 0;
+    isSwiping = false;
+    row.classList.add("is-swiping");
+  }, {passive:true});
+
+  row.addEventListener("touchmove", e => {
+    const dx = e.touches[0].clientX - startX + (isOpen ? -THRESHOLD : 0);
+    if (!isSwiping && Math.abs(dx) > 6) isSwiping = true;
+    if (!isSwiping) return;
+    const clamped = Math.min(0, Math.max(-THRESHOLD * 1.15, dx));
+    setX(clamped);
+    currentX = clamped;
+  }, {passive:true});
+
+  row.addEventListener("touchend", () => {
+    row.classList.remove("is-swiping");
+    row.style.transition = "transform 0.2s ease";
+    if (currentX < -THRESHOLD * 0.5) snapOpen();
+    else snapClose();
+    setTimeout(() => { row.style.transition = ""; }, 220);
+  }, {passive:true});
+
+  // Delete tap
+  delZone.addEventListener("click", e => {
+    e.stopPropagation();
+    onDelete();
+  });
+
+  // Tap elsewhere to close
+  document.addEventListener("touchstart", e => {
+    if (isOpen && !wrap.contains(e.target)) snapClose();
+  }, {passive:true});
+}
+
+// ---- TOGGLE ITEM ----
+function doToggle(item, type, dateKey, row, box, lbl) {
+  let checked;
+  if (type === "food") {
+    const fc = fChecked(dateKey);
+    fc[item.id] = !fc[item.id];
+    checked = fc[item.id];
+    updateFoodProgress(dateKey);
+  } else {
+    const ex = exChecked(dateKey);
+    ex[item.id] = !ex[item.id];
+    checked = ex[item.id];
+    updateExProgress(dateKey);
+  }
+  row.classList.toggle("checked", checked);
+  lbl.style.textDecoration = checked ? "line-through" : "";
+  box.classList.add("pop");
+  box.addEventListener("animationend", () => box.classList.remove("pop"), {once:true});
+  checkDayComplete(dateKey);
+  save();
+}
+
+// ---- RENAME ----
+function startRename(labelEl, item, type) {
+  labelEl.contentEditable = "true";
+  labelEl.focus();
+  const sel = window.getSelection(), r = document.createRange();
+  r.selectNodeContents(labelEl); sel.removeAllRanges(); sel.addRange(r);
+
+  const finish = () => {
+    labelEl.contentEditable = "false";
+    const v = labelEl.textContent.trim();
+    if (v) {
+      item.label = v;
+      // sync food definition
+      if (type === "food") {
+        const fi = state.foodItems.find(f => f.id === item.id);
+        if (fi) fi.label = v;
+      }
+      save();
+    } else {
+      labelEl.textContent = item.label;
+    }
+  };
+  labelEl.addEventListener("blur", finish, {once:true});
+  labelEl.addEventListener("keydown", e => {
+    if (e.key === "Enter")  { e.preventDefault(); labelEl.blur(); }
+    if (e.key === "Escape") { labelEl.textContent = item.label; labelEl.blur(); }
+  });
+}
+
+// ---- DELETE ----
+function deleteItem(wrap, item, type, dateKey) {
+  wrap.style.transition = "all 0.22s ease";
+  wrap.style.maxHeight  = wrap.offsetHeight + "px";
+  wrap.style.overflow   = "hidden";
+  requestAnimationFrame(() => {
+    wrap.style.maxHeight   = "0";
+    wrap.style.paddingTop  = "0";
+    wrap.style.paddingBottom = "0";
+    wrap.style.opacity     = "0";
+  });
+  setTimeout(() => {
+    wrap.remove();
+    const dow = dowOfKey(dateKey);
+    if (type === "food") {
+      state.foodItems = state.foodItems.filter(f => f.id !== item.id);
+      updateFoodProgress(dateKey);
+      renderSettingsFoodToggles();
+    } else {
+      const day = state.exercises[dow];
+      if (day) {
+        day.items  = day.items.filter(i => i.id !== item.id);
+        day.custom = day.custom.filter(i => i.id !== item.id);
+      }
+      updateExProgress(dateKey);
+    }
+    save();
+    showToast("Item deleted");
+  }, 240);
+}
+
+// ---- ADD EXERCISE ----
+function addExerciseItem() {
+  const dateKey = state.viewDate;
+  const dow     = dowOfKey(dateKey);
+  const def     = DEFAULT_EX[dow];
+  if (!def) return;
+  const id   = `ex_c_${dow}_${Date.now()}`;
+  const item = { id, label:"New exercise" };
+  state.exercises[dow].custom.push(item);
+  save();
+  const wrap = makeItem(item, "ex", dateKey, false, true);
+  $("exerciseBody").appendChild(wrap);
+  const lbl = wrap.querySelector(".item-label");
+  setTimeout(() => startRename(lbl, item, "ex"), 60);
+  updateExProgress(dateKey);
+}
+
+// ---- ADD FOOD ----
+function addFoodItem() {
+  const dateKey = state.viewDate;
+  const id   = `food_c_${Date.now()}`;
+  const item = { id, group:"Custom", label:"New item", special:null, active:true };
+  state.foodItems.push(item);
+  save();
+  renderFood();
+  renderSettingsFoodToggles();
+  const rows = $("foodBody").querySelectorAll(".swipe-container");
+  const last = rows[rows.length-1];
+  if (last) {
+    const lbl = last.querySelector(".item-label");
+    const fi  = state.foodItems[state.foodItems.length-1];
+    setTimeout(() => startRename(lbl, fi, "food"), 60);
+  }
+}
+
+// ---- SETTINGS FOOD TOGGLES ----
+function renderSettingsFoodToggles() {
+  const c = $("settingsFoodToggles");
+  c.innerHTML = "";
+  state.foodItems.forEach(f => {
+    const row = el("div","settings-row");
+    row.appendChild(el("span","settings-row-label", f.label));
+    const tog = document.createElement("label");
+    tog.className = "toggle";
+    const inp = document.createElement("input");
+    inp.type = "checkbox"; inp.checked = f.active;
+    inp.addEventListener("change", () => { f.active = inp.checked; save(); renderFood(); });
+    const track = el("div","toggle-track");
+    const thumb = el("div","toggle-thumb");
+    tog.appendChild(inp); tog.appendChild(track); tog.appendChild(thumb);
+    row.appendChild(tog);
+    c.appendChild(row);
+  });
+}
+
+// ---- THEME ----
+function applyTheme() {
+  document.documentElement.dataset.theme = state.theme === "light" ? "light" : "";
+  $("lightModeToggle").checked = state.theme === "light";
+}
+
+// ---- TOAST ----
+let toastT;
+function showToast(msg) {
+  const t = $("toast");
+  t.textContent = msg;
+  t.classList.add("show");
+  clearTimeout(toastT);
+  toastT = setTimeout(() => t.classList.remove("show"), 2300);
+}
+
+// ---- SETTINGS PANEL ----
+function openSettings()  { $("settingsOverlay").classList.add("open"); $("settingsSheet").classList.add("open"); }
+function closeSettings() { $("settingsOverlay").classList.remove("open"); $("settingsSheet").classList.remove("open"); }
+
+// ---- INIT ----
+function init() {
+  load();
+  initFood();
+  initExercises();
+  onNewDay();
+  computeStreak();
+
+  // Always land on today on first open
+  const raw = localStorage.getItem(SK);
+  if (!raw) state.viewDate = todayKey();
+
+  renderAll();
+  scheduleMidnight();
+
+  // Date nav
+  $("prevDay").addEventListener("click", () => navigateDate(-1));
+  $("nextDay").addEventListener("click", () => navigateDate(+1));
+
+  // Calendar dot tap is wired inside renderStreak
+
+  // Header buttons
+  $("settingsBtn").addEventListener("click", openSettings);
+  $("settingsOverlay").addEventListener("click", closeSettings);
+  $("themeBtn").addEventListener("click", () => {
+    state.theme = state.theme === "dark" ? "light" : "dark";
+    applyTheme(); save();
+  });
+  $("lightModeToggle").addEventListener("change", e => {
+    state.theme = e.target.checked ? "light" : "dark";
+    applyTheme(); save();
+  });
+
+  // Add buttons
+  $("addExercise").addEventListener("click", addExerciseItem);
+  $("addFood").addEventListener("click", addFoodItem);
+
+  // Reset streak
+  $("resetStreakBtn").addEventListener("click", () => {
+    if (confirm("Reset streak to 0? This clears all completion history.")) {
+      state.streak = 0;
+      state.streakHistory = {};
+      save(); renderStreak(); showToast("Streak reset.");
+    }
+  });
+
+  // Swipe settings sheet down to dismiss
+  let shY;
+  const sheet = $("settingsSheet");
+  sheet.addEventListener("touchstart", e => { shY = e.touches[0].clientY; }, {passive:true});
+  sheet.addEventListener("touchmove",  e => { if (e.touches[0].clientY - shY > 60) closeSettings(); }, {passive:true});
+}
+
+document.addEventListener("DOMContentLoaded", init);
+
+// Service Worker
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js')
+      .then(r  => console.log('[SW] ok', r.scope))
+      .catch(e => console.warn('[SW] fail', e));
+  });
+}
+</script>
+</body>
+</html>
